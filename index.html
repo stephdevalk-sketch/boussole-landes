@@ -883,27 +883,22 @@ function nextQ(){
 function skipContact(){cQ=TQ-1;renderQ();}
 
 function computeScoreRange(){
-  const sm={s40:35,s80:65,s120:100,s200:160,s200p:250};
-  function soft(d){return Math.pow(Math.max(0,10-d),1.2)/Math.pow(10,1.2)*10;}
-  const rawScores=COMMUNES.map(c=>{
-    let s=0,w=0;
-    if(A.ocean!==undefined){s+=soft(Math.abs(c.sc.o-A.ocean))*2.7;w+=27;}
-    if(A.nature!==undefined){s+=soft(Math.abs(c.sc.nat-A.nature))*2;w+=20;}
-    if(A.commerces!==undefined){s+=soft(Math.abs(c.sc.com-A.commerces))*1.6;w+=16;}
-    if(A.transports!==undefined){s+=soft(Math.abs(c.sc.tra-A.transports))*1.2;w+=12;}
-    if(A.calme!==undefined){s+=soft(Math.abs(c.sc.cal-A.calme))*0.8;w+=8;}
-    const es=A.surface||(A.bMin||A.bMax?'s120':null);
-    if(A.bMin&&A.bMax&&es){const surf=sm[es]||100,est=c.pm*surf,mid=(A.bMin+A.bMax)/2,r=est/mid;const bs=r<=0.5?6:r<=0.8?8.5:r<=1.2?10:r<=1.5?7.5:r<=2.0?4.5:1.5;s+=bs*2;w+=20;}
-    if(A.profil==='famille'){s+=soft(Math.abs(c.sc.com-8))*0.5+(c.p>=800?0.5:0);w+=5;}
-    else if(A.profil==='retraite'){s+=(c.sc.cal>=8?0.8:c.sc.cal>=6?0.4:0)+(c.sc.com>=4?0.4:0);w+=5;}
-    else if(A.profil==='actif'){s+=soft(Math.abs(c.sc.tra-8))*0.8;w+=8;}
-    if(A.sport==='essentiel'){s+=soft(Math.abs(Math.max(c.sc.o,c.sc.nat)-8))*0.8;w+=8;}
-    if(A.usage==='secondaire'){s+=soft(Math.abs(Math.max(c.sc.o,c.sc.nat)-8))*0.5;w+=5;}
-    else if(A.usage==='locatif'){const ls=c.z==='ocean'?9:c.z==='urbain'?8:c.z==='foret'?6:5;s+=soft(Math.abs(ls-8))*0.5;w+=5;}
-    return w>0?s/w:0.65;
-  });
-  window._scoreRange={min:Math.min(...rawScores),max:Math.max(...rawScores)};
+  try{
+    const sm={s40:35,s80:65,s120:100,s200:160,s200p:250};
+    function soft(d){return Math.pow(Math.max(0,10-d),1.2)/Math.pow(10,1.2)*10;}
+    const rawScores=COMMUNES.map(function(c){
+      let s=0,w=0;
+      if(A.ocean!==undefined){s+=soft(Math.abs(c.sc.o-A.ocean))*2.7;w+=27;}
+      if(A.nature!==undefined){s+=soft(Math.abs(c.sc.nat-A.nature))*2;w+=20;}
+      if(A.commerces!==undefined){s+=soft(Math.abs(c.sc.com-A.commerces))*1.6;w+=16;}
+      if(A.transports!==undefined){s+=soft(Math.abs(c.sc.tra-A.transports))*1.2;w+=12;}
+      if(A.calme!==undefined){s+=soft(Math.abs(c.sc.cal-A.calme))*0.8;w+=8;}
+      return w>0?s/w:0.65;
+    });
+    window._scoreRange={min:Math.min.apply(null,rawScores),max:Math.max.apply(null,rawScores)};
+  }catch(e){window._scoreRange=null;console.warn("scoreRange:",e);}
 }
+
 function calcScore(c){
   let s=0,w=0;
   const sm={s40:35,s80:65,s120:100,s200:160,s200p:250};
@@ -1045,7 +1040,7 @@ communesHtml+
 }
 
 function showResults(){
-  try{computeScoreRange();}catch(e){console.warn("scoreRange:",e);}
+  computeScoreRange();
   try{incrementCounter();}catch(e){}
   const ov=document.getElementById("ldOv");
   ov.classList.add("on");
@@ -1334,6 +1329,5 @@ function initMap(ranked){
 }
 </script>
 
-<script>initCounter();</script>
 </body>
 </html>
