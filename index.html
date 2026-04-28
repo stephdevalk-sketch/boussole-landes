@@ -880,165 +880,86 @@ function computeScoreRange(){
   try{
     const sm={s40:35,s80:65,s120:100,s200:160,s200p:250};
     function soft(d){return Math.pow(Math.max(0,10-d),1.2)/Math.pow(10,1.2)*10;}
-    const rawScores=COMMUNES.map(function(c){
-      var s=0,w=0;
-      if(A.ocean!==undefined){s+=soft(Math.abs(c.sc.o-A.ocean))*2.7;w+=27;}
-      if(A.nature!==undefined){s+=soft(Math.abs(c.sc.nat-A.nature))*2;w+=20;}
-      if(A.commerces!==undefined){s+=soft(Math.abs(c.sc.com-A.commerces))*1.6;w+=16;}
-      if(A.transports!==undefined){s+=soft(Math.abs(c.sc.tra-A.transports))*1.2;w+=12;}
-      if(A.calme!==undefined){s+=soft(Math.abs(c.sc.cal-A.calme))*0.8;w+=8;}
-      var es=A.surface||(A.bMin||A.bMax?'s120':null);
-      if(A.bMin&&A.bMax&&es){var surf=sm[es]||100,est=c.pm*surf,mid=(A.bMin+A.bMax)/2,r=est/mid;var bs=r<=0.5?6:r<=0.8?8.5:r<=1.2?10:r<=1.5?7.5:r<=2.0?4.5:1.5;s+=bs*2;w+=20;}
-      if(A.profil==='famille'){s+=soft(Math.abs(c.sc.com-8))*0.5+(c.p>=800?0.5:0);w+=5;}
-      else if(A.profil==='retraite'){s+=(c.sc.cal>=8?0.8:c.sc.cal>=6?0.4:0)+(c.sc.com>=4?0.4:0);w+=5;}
-      else if(A.profil==='actif'){s+=soft(Math.abs(c.sc.tra-8))*0.8;w+=8;}
-      if(A.sport==='essentiel'){s+=soft(Math.abs(Math.max(c.sc.o,c.sc.nat)-8))*0.8;w+=8;}
-      if(A.usage==='secondaire'){s+=soft(Math.abs(Math.max(c.sc.o,c.sc.nat)-8))*0.5;w+=5;}
-      else if(A.usage==='locatif'){var ls=c.z==='ocean'?9:c.z==='urbain'?8:c.z==='foret'?6:5;s+=soft(Math.abs(ls-8))*0.5;w+=5;}
-      return w>0?s/w:0.65;
-    });
-    window._scoreRange={min:Math.min.apply(null,rawScores),max:Math.max.apply(null,rawScores)};
+    const rawScores=COMMUNES
+      // Exclure communes hors budget du calcul de la plage
+      .filter(function(c){
+        if(A.bMax&&A.surface){
+          var surf=sm[A.surface]||100;
+          return c.pm*surf<=A.bMax;
+        }
+        return true;
+      })
+      .map(function(c){
+        var s=0,w=0;
+        if(A.bMin&&A.bMax&&A.surface){
+          var surf=sm[A.surface]||100,est=c.pm*surf,mid=(A.bMin+A.bMax)/2,r=est/mid;
+          var bs=r<=0.5?5:r<=0.75?7.5:r<=1.0?10:r<=1.25?8:r<=1.5?5:2;
+          s+=bs*3.5;w+=35;
+        }
+        if(A.ocean!==undefined){s+=soft(Math.abs(c.sc.o-A.ocean))*2.7;w+=27;}
+        if(A.nature!==undefined){s+=soft(Math.abs(c.sc.nat-A.nature))*2;w+=20;}
+        if(A.commerces!==undefined){s+=soft(Math.abs(c.sc.com-A.commerces))*1.6;w+=16;}
+        if(A.transports!==undefined){s+=soft(Math.abs(c.sc.tra-A.transports))*1.2;w+=12;}
+        if(A.calme!==undefined){s+=soft(Math.abs(c.sc.cal-A.calme))*0.8;w+=8;}
+        return w>0?s/w:0.65;
+      });
+    if(rawScores.length>0){
+      window._scoreRange={min:Math.min.apply(null,rawScores),max:Math.max.apply(null,rawScores)};
+    } else {
+      window._scoreRange=null;
+    }
   }catch(e){window._scoreRange=null;console.warn('scoreRange:',e);}
 }
 
 function calcScore(c){
-  var s=0,w=0;
   const sm={s40:35,s80:65,s120:100,s200:160,s200p:250};
   function soft(diff){return Math.pow(Math.max(0,10-diff),1.2)/Math.pow(10,1.2)*10;}
+
+  // ══ CRITÈRE 1 — BUDGET (critère rédhibitoire en premier) ══
+  var budgetScore=0, budgetWeight=0;
+  if(A.bMax&&A.surface){
+    const surf=sm[A.surface]||100;
+    const est=c.pm*surf;
+    // Hors budget max → exclu définitivement
+    if(est>A.bMax){
+      return Object.assign({},c,{match:5,_outOfBudget:true});
+    }
+    // Dans le budget → calcul du score budget (poids 35%)
+    if(A.bMin&&A.bMax){
+      const mid=(A.bMin+A.bMax)/2, r=est/mid;
+      // Parfait si dans la fourchette, pénalité si très en dessous (marché sans offre) ou au-dessus
+      budgetScore = r<=0.5?5 : r<=0.75?7.5 : r<=1.0?10 : r<=1.25?8 : r<=1.5?5 : 2;
+      budgetWeight = 35;
+    }
+  }
+
+  // ══ CRITÈRES 2-6 — MODE DE VIE ══
+  var s=budgetScore*(budgetWeight/10), w=budgetWeight;
+
   if(A.ocean!==undefined){s+=soft(Math.abs(c.sc.o-A.ocean))*2.7;w+=27;}
   if(A.nature!==undefined){s+=soft(Math.abs(c.sc.nat-A.nature))*2;w+=20;}
   if(A.commerces!==undefined){s+=soft(Math.abs(c.sc.com-A.commerces))*1.6;w+=16;}
   if(A.transports!==undefined){s+=soft(Math.abs(c.sc.tra-A.transports))*1.2;w+=12;}
   if(A.calme!==undefined){s+=soft(Math.abs(c.sc.cal-A.calme))*0.8;w+=8;}
-  const eSurf=A.surface||(A.bMin||A.bMax?'s120':null);
-  if(A.bMin&&A.bMax&&eSurf){
-    const surf=sm[eSurf]||100,est=c.pm*surf,mid=(A.bMin+A.bMax)/2,r=est/mid;
-    const bs=r<=0.5?6:r<=0.8?8.5:r<=1.2?10:r<=1.5?7.5:r<=2.0?4.5:1.5;
-    s+=bs*2;w+=20;
-  }
+
+  // ══ CRITÈRES 3 — PROFIL / SPORT / USAGE ══
   if(A.profil==='famille'){s+=soft(Math.abs(c.sc.com-8))*0.5+(c.p>=800?0.5:0);w+=5;}
   else if(A.profil==='retraite'){s+=(c.sc.cal>=8?0.8:c.sc.cal>=6?0.4:0)+(c.sc.com>=4?0.4:0);w+=5;}
   else if(A.profil==='actif'){s+=soft(Math.abs(c.sc.tra-8))*0.8;w+=8;}
   if(A.sport==='essentiel'){s+=soft(Math.abs(Math.max(c.sc.o,c.sc.nat)-8))*0.8;w+=8;}
   if(A.usage==='secondaire'){s+=soft(Math.abs(Math.max(c.sc.o,c.sc.nat)-8))*0.5;w+=5;}
-  else if(A.usage==='locatif'){const ls=c.z==='ocean'?9:c.z==='urbain'?8:c.z==='foret'?6:5;s+=soft(Math.abs(ls-8))*0.5;w+=5;}
+  else if(A.usage==='locatif'){var ls=c.z==='ocean'?9:c.z==='urbain'?8:c.z==='foret'?6:5;s+=soft(Math.abs(ls-8))*0.5;w+=5;}
+
   var raw=w>0?s/w:0.65;
   var pct;
   if(window._scoreRange&&window._scoreRange.max>window._scoreRange.min){
-    var min=window._scoreRange.min,max=window._scoreRange.max;
-    pct=Math.round(40+(raw-min)/(max-min)*57);
+    var mn=window._scoreRange.min, mx=window._scoreRange.max;
+    pct=Math.round(40+(raw-mn)/(mx-mn)*57);
   } else {
     pct=Math.round(45+raw*52);
   }
   if(c.pri)pct=Math.min(97,pct+PBOOST);
   return Object.assign({},c,{match:Math.min(97,Math.max(40,pct))});
-}
-
-async function sendToSheets(ranked){
-  const top5=ranked.slice(0,5);
-  const fmt=v=>v>=1000000?"1 000 000 €":(v/1000).toFixed(0)+"k €";
-  const surfLabels={s40:"< 40 m²",s80:"40-80 m²",s120:"80-120 m²",s200:"120-200 m²",s200p:"> 200 m²"};
-  const communesHtml=top5.map((c,i)=>{
-    const bg=i%2===0?"#f9f8f5":"#fff";
-    return '<tr style="background:'+bg+'">'+
-      '<td style="padding:10px 14px;font-weight:600;color:#1B6B7B">#'+(i+1)+'</td>'+
-      '<td style="padding:10px 14px;font-weight:500">'+c.n+'</td>'+
-      '<td style="padding:10px 14px;text-align:center"><span style="background:#22C55E;color:#fff;padding:3px 10px;border-radius:20px;font-size:13px;font-weight:700">'+c.match+'%</span></td>'+
-      '<td style="padding:10px 14px;color:#6B6B5F;font-size:13px">'+c.tag+'</td>'+
-      '<td style="padding:10px 14px;color:#A88530;font-size:13px;font-weight:500">'+c.pm.toLocaleString("fr-FR")+' €/m²</td>'+
-    '</tr>';
-  }).join("");
-
-  const budgetStr=A.bMin&&A.bMax?fmt(A.bMin)+" → "+fmt(A.bMax):"—";
-  const surfStr=surfLabels[A.surface]||"—";
-  const dateStr=new Date().toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"});
-  const htmlBody=
-'<div style="font-family:DM Sans,Arial,sans-serif;max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 20px rgba(0,0,0,.08)">'+
-'<div style="background:linear-gradient(135deg,#0a2830,#1B6B7B);padding:32px 28px;text-align:center">'+
-'<div style="background:#C9A84C;color:#fff;padding:10px 20px;text-align:center;font-weight:700;font-size:15px;letter-spacing:.03em">'+(A.recontact==="oui"?"✅ SOUHAITE ÊTRE RECONTACTÉ":"❌ NE SOUHAITE PAS ÊTRE RECONTACTÉ")+'</div>'+'<div style="background:linear-gradient(135deg,#0a2830,#1B6B7B);padding:32px 28px;text-align:center">'+'<div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.6);margin-bottom:8px">La Boussole Immobilière des Landes</div>'+
-'<div style="font-size:28px;font-weight:700;color:#fff;margin-bottom:4px">'+(A.contact?.prenom||"")+" "+(A.contact?.nom||"")+'</div>'+
-'<div style="font-size:14px;color:rgba(255,255,255,.7)">'+dateStr+'</div>'+
-'</div>'+
-'<div style="padding:24px 28px;background:#F2EDE4">'+
-'<table style="width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden">'+
-'<tr style="background:#1B6B7B;color:#fff">'+
-'<td style="padding:10px 14px;font-size:12px">📞 Téléphone</td>'+
-'<td style="padding:10px 14px;font-size:12px">✉️ Email</td>'+
-'<td style="padding:10px 14px;font-size:12px">💶 Budget</td>'+
-'<td style="padding:10px 14px;font-size:12px">🏠 Surface</td></tr>'+
-'<tr>'+
-'<td style="padding:12px 14px;font-weight:500">'+(A.contact?.tel||"")+'</td>'+
-'<td style="padding:12px 14px">'+(A.contact?.email||"")+'</td>'+
-'<td style="padding:12px 14px">'+budgetStr+'</td>'+
-'<td style="padding:12px 14px">'+surfStr+'</td></tr>'+
-'</table></div>'+
-'<div style="padding:24px 28px">'+
-'<div style="font-size:15px;font-weight:600;color:#1A1A1A;margin-bottom:14px">🏆 Top 5 communes recommandées</div>'+
-'<table style="width:100%;border-collapse:collapse;border-radius:10px;overflow:hidden;border:1px solid #E8E3DB">'+
-'<tr style="background:#1B6B7B;color:#fff;font-size:12px">'+'<td style="padding:10px 14px">#</td><td style="padding:10px 14px">Commune</td><td style="padding:10px 14px;text-align:center">Score</td><td style="padding:10px 14px">Zone</td><td style="padding:10px 14px">Prix/m²</td></tr>'+
-communesHtml+
-'</table></div>'+
-'<div style="padding:0 28px 24px">'+
-'<table style="width:100%;border-collapse:collapse;border-radius:10px;overflow:hidden;border:1px solid #E8E3DB">'+
-'<tr style="background:#F2EDE4">'+
-'<td style="padding:10px 14px;font-size:12px;color:#6B6B5F">Usage</td><td style="padding:10px 14px;font-size:13px">'+(A.usage||"—")+'</td>'+
-'<td style="padding:10px 14px;font-size:12px;color:#6B6B5F">Délai</td><td style="padding:10px 14px;font-size:13px">'+(A.delai||"—")+'</td>'+
-'<td style="padding:10px 14px;font-size:12px;color:#6B6B5F">Recontact</td><td style="padding:10px 14px;font-size:13px">'+(A.recontact==="oui"?"✅ Oui — recontact souhaité":A.recontact==="non"?"❌ Non":"⚠ Non précisé")+'</td>'+
-'</tr></table></div>'+
-'<div style="background:#0a2830;padding:20px 28px;text-align:center">'+
-'<div style="font-size:13px;color:rgba(255,255,255,.6)">Stéphan DE VALK · 06 33 03 98 65 · stephan.devalk@dream-immo.com</div>'+
-'</div></div>';
-
-  // Email à Stéphan
-  const paramsAdvisor={
-    to_email:"stephan.devalk@dream-immo.com",
-    to_name:"Stéphan DE VALK",
-    prenom:A.contact?.prenom||"",
-    nom:A.contact?.nom||"",
-    email:A.contact?.email||"",
-    tel:A.contact?.tel||"",
-    commune1:top5[0]?top5[0].n+" ("+top5[0].match+"%)":"—",
-    commune2:top5[1]?top5[1].n+" ("+top5[1].match+"%)":"—",
-    commune3:top5[2]?top5[2].n+" ("+top5[2].match+"%)":"—",
-    commune4:top5[3]?top5[3].n+" ("+top5[3].match+"%)":"—",
-    commune5:top5[4]?top5[4].n+" ("+top5[4].match+"%)":"—",
-    budget:A.bMin&&A.bMax?fmt(A.bMin)+" → "+fmt(A.bMax):"—",
-    surface:surfLabels[A.surface]||"—",
-    type_bien:A.typeBien||"—",
-    usage:A.usage||"—",delai:A.delai||"—",profil:A.profil||"—",recontact:A.recontact==="oui"?"✅ Oui, souhaite être recontacté":"❌ Non",
-    date:new Date().toLocaleString("fr-FR"),
-    html_body:htmlBody,
-    message:"Nouveau prospect via La Boussole Immobilière des Landes — Recontact: "+(A.recontact==="oui"?"OUI":"NON")
-  };
-
-  // Email au client avec son récapitulatif
-  const paramsClient={
-    to_email:A.contact?.email||"",
-    to_name:A.contact?.prenom+" "+A.contact?.nom,
-    prenom:A.contact?.prenom||"",
-    nom:A.contact?.nom||"",
-    email:A.contact?.email||"",
-    tel:A.contact?.tel||"",
-    commune1:top5[0]?top5[0].n+" ("+top5[0].match+"%)":"—",
-    commune2:top5[1]?top5[1].n+" ("+top5[1].match+"%)":"—",
-    commune3:top5[2]?top5[2].n+" ("+top5[2].match+"%)":"—",
-    commune4:top5[3]?top5[3].n+" ("+top5[3].match+"%)":"—",
-    commune5:top5[4]?top5[4].n+" ("+top5[4].match+"%)":"—",
-    budget:A.bMin&&A.bMax?fmt(A.bMin)+" → "+fmt(A.bMax):"—",
-    surface:surfLabels[A.surface]||"—",
-    type_bien:A.typeBien||"—",
-    usage:A.usage||"—",delai:A.delai||"—",profil:A.profil||"—",recontact:A.recontact==="oui"?"✅ Oui, souhaite être recontacté":"❌ Non",
-    date:new Date().toLocaleString("fr-FR"),
-    html_body:htmlBody,
-    message:"Voici votre récapitulatif personnalisé de La Boussole Immobilière des Landes"
-  };
-
-  try{
-    await emailjs.send(EJS_SERVICE,"boussole_contact",paramsAdvisor,EJS_PUBKEY);
-    if(A.contact?.email){
-      await emailjs.send(EJS_SERVICE,"boussole_client",paramsClient,EJS_PUBKEY);
-    }
-  }catch(e){console.warn("EmailJS:",e);}
 }
 
 function shareResults(){
