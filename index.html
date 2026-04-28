@@ -799,8 +799,8 @@ function renderQ(){
       '<div class="recontact-wrap">'+
         '<div class="recontact-label">Souhaitez-vous être recontacté(e) par un conseiller immobilier ?</div>'+
         '<div class="recontact-opts">'+
-          '<button class="rc-btn'+(A.recontact==="oui"?" sel":"")+' data-val="oui" id="rc-oui">✅ Oui, je suis intéressé(e)</button>'+
-          '<button class="rc-btn'+(A.recontact==="non"?" sel":"")+' data-val="non" id="rc-non">Non merci</button>'+
+          '<button class="rc-btn'+(A.recontact==="oui"?" sel":"")+' onclick=\"setRecontact(&apos;oui&apos;,this)\" id=\"rc-oui\">✅ Oui, je suis intéressé(e)</button>'+
+          '<button class="rc-btn'+(A.recontact==="non"?" sel":"")+' onclick=\"setRecontact(&apos;non&apos;,this)\" id=\"rc-non\">Non merci</button>'+
         '</div>'+
       '</div>'+
       '<div class="send-status" id="sendStatus"></div>'+
@@ -809,11 +809,7 @@ function renderQ(){
     document.getElementById("btnNext").className="btn-next";
     // Attach recontact button listeners
     setTimeout(()=>{
-      document.querySelectorAll(".rc-btn").forEach(btn=>{
-        btn.addEventListener("click",function(){
-          setRecontact(this.dataset.val,this);
-        });
-      });
+      // onclick direct sur les boutons rc-btn
     },0);
   }
 }
