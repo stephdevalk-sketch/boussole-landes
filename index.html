@@ -50,8 +50,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--sand);color:var(--text);m
 .hero-cta{display:inline-flex;align-items:center;gap:10px;background:#fff;color:var(--ocean);font-size:15px;font-weight:500;padding:17px 40px;border-radius:50px;cursor:pointer;border:none;box-shadow:0 8px 32px rgba(0,0,0,.3);font-family:inherit;transition:all .25s;animation:fadeUp .8s .65s ease both}
 .hero-cta:hover{transform:translateY(-3px);box-shadow:0 14px 44px rgba(0,0,0,.35)}
 .hero-tags{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:28px;animation:fadeUp .8s .75s ease both}
-.hero-counter{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);color:rgba(255,255,255,.9);border:1px solid rgba(255,255,255,.2);padding:8px 18px;border-radius:50px;font-size:13px;font-weight:500;margin-bottom:16px;backdrop-filter:blur(4px)}
-.hero-counter #counterNum{font-weight:700;color:#C9A84C;font-size:15px}
 .hero-tag{font-size:13px;color:rgba(255,255,255,.78);background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);padding:6px 16px;border-radius:20px}
 .hero-stats{display:flex;gap:40px;justify-content:center;margin-top:44px;padding-top:28px;border-top:1px solid rgba(255,255,255,.18);animation:fadeUp .8s .85s ease both}
 .stat-num{display:block;font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:#fff}
@@ -270,9 +268,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--sand);color:var(--text);m
       </div>
       <h1>Trouvez votre<br><em>commune idéale</em><br>dans les Landes</h1>
       <p class="hero-sub">Dites-nous comment vous vivez, nous vous dirons où vivre. Découvrez parmi les 327 communes landaises celle qui correspond parfaitement à votre mode de vie.</p>
-      <div class="hero-counter" id="heroCounter" style="display:none">
-        <span id="counterNum">0</span> personnes ont déjà trouvé leur commune idéale
-      </div>
       <button class="hero-cta" onclick="startQuiz()">🧭 Commencer le questionnaire</button>
       <div class="hero-tags"><span class="hero-tag">🌊 Proximité océan</span><span class="hero-tag">🌲 Forêt &amp; nature</span><span class="hero-tag">🏷️ Prix au m²</span><span class="hero-tag">🏡 Cadre de vie</span></div>
       <div class="hero-stats">
@@ -882,54 +877,23 @@ function nextQ(){
 }
 function skipContact(){cQ=TQ-1;renderQ();}
 
-function computeScoreRange(){
-  try{
-    const sm={s40:35,s80:65,s120:100,s200:160,s200p:250};
-    function soft(d){return Math.pow(Math.max(0,10-d),1.2)/Math.pow(10,1.2)*10;}
-    const rawScores=COMMUNES.map(function(c){
-      let s=0,w=0;
-      if(A.ocean!==undefined){s+=soft(Math.abs(c.sc.o-A.ocean))*2.7;w+=27;}
-      if(A.nature!==undefined){s+=soft(Math.abs(c.sc.nat-A.nature))*2;w+=20;}
-      if(A.commerces!==undefined){s+=soft(Math.abs(c.sc.com-A.commerces))*1.6;w+=16;}
-      if(A.transports!==undefined){s+=soft(Math.abs(c.sc.tra-A.transports))*1.2;w+=12;}
-      if(A.calme!==undefined){s+=soft(Math.abs(c.sc.cal-A.calme))*0.8;w+=8;}
-      return w>0?s/w:0.65;
-    });
-    window._scoreRange={min:Math.min.apply(null,rawScores),max:Math.max.apply(null,rawScores)};
-  }catch(e){window._scoreRange=null;console.warn("scoreRange:",e);}
-}
-
 function calcScore(c){
   let s=0,w=0;
   const sm={s40:35,s80:65,s120:100,s200:160,s200p:250};
   function soft(diff){return Math.pow(Math.max(0,10-diff),1.2)/Math.pow(10,1.2)*10;}
-  if(A.ocean!==undefined){s+=soft(Math.abs(c.sc.o-A.ocean))*2.7;w+=27;}
+  if(A.ocean!==undefined){s+=soft(Math.abs(c.sc.o-A.ocean))*2.5;w+=25;}
   if(A.nature!==undefined){s+=soft(Math.abs(c.sc.nat-A.nature))*2;w+=20;}
-  if(A.commerces!==undefined){s+=soft(Math.abs(c.sc.com-A.commerces))*1.6;w+=16;}
+  if(A.commerces!==undefined){s+=soft(Math.abs(c.sc.com-A.commerces))*1.5;w+=15;}
   if(A.transports!==undefined){s+=soft(Math.abs(c.sc.tra-A.transports))*1.2;w+=12;}
-  if(A.calme!==undefined){s+=soft(Math.abs(c.sc.cal-A.calme))*0.8;w+=8;}
-  const eSurf=A.surface||(A.bMin||A.bMax?'s120':null);
-  if(A.bMin&&A.bMax&&eSurf){
-    const surf=sm[eSurf]||100,est=c.pm*surf,mid=(A.bMin+A.bMax)/2,r=est/mid;
+  if(A.calme!==undefined){s+=soft(Math.abs(c.sc.cal-A.calme))*1.5;w+=15;}
+  if(A.bMin&&A.bMax&&A.surface){
+    const surf=sm[A.surface]||100,est=c.pm*surf,mid=(A.bMin+A.bMax)/2,r=est/mid;
     const bs=r<=0.5?6:r<=0.8?8.5:r<=1.2?10:r<=1.5?7.5:r<=2.0?4.5:1.5;
     s+=bs*2;w+=20;
   }
-  if(A.profil==='famille'){s+=soft(Math.abs(c.sc.com-8))*0.5+(c.p>=800?0.5:0);w+=5;}
-  else if(A.profil==='retraite'){s+=(c.sc.cal>=8?0.8:c.sc.cal>=6?0.4:0)+(c.sc.com>=4?0.4:0);w+=5;}
-  else if(A.profil==='actif'){s+=soft(Math.abs(c.sc.tra-8))*0.8;w+=8;}
-  if(A.sport==='essentiel'){s+=soft(Math.abs(Math.max(c.sc.o,c.sc.nat)-8))*0.8;w+=8;}
-  if(A.usage==='secondaire'){s+=soft(Math.abs(Math.max(c.sc.o,c.sc.nat)-8))*0.5;w+=5;}
-  else if(A.usage==='locatif'){const ls=c.z==='ocean'?9:c.z==='urbain'?8:c.z==='foret'?6:5;s+=soft(Math.abs(ls-8))*0.5;w+=5;}
-  const raw=w>0?s/w:0.65;
-  let pct;
-  if(window._scoreRange&&window._scoreRange.max>window._scoreRange.min){
-    const {min,max}=window._scoreRange;
-    pct=Math.round(40+(raw-min)/(max-min)*57);
-  } else {
-    pct=Math.round(45+raw*52);
-  }
+  let pct=w>0?Math.round(45+(s/w)*52):65;
   if(c.pri)pct=Math.min(97,pct+PBOOST);
-  return{...c,match:Math.min(97,Math.max(40,pct))};
+  return{...c,match:Math.min(97,Math.max(45,pct))};
 }
 
 async function sendToSheets(ranked){
@@ -1040,8 +1004,6 @@ communesHtml+
 }
 
 function showResults(){
-  computeScoreRange();
-  try{incrementCounter();}catch(e){}
   const ov=document.getElementById("ldOv");
   ov.classList.add("on");
   const fill=document.getElementById("ldFill");
@@ -1049,7 +1011,6 @@ function showResults(){
   const steps=["Analyse de vos critères…","Comparaison avec 327 communes…","Calcul des scores par critère…","Analyse budgétaire…","Finalisation de votre top 10…"];
   let i=0;const iv=setInterval(()=>{if(i<steps.length)document.getElementById("ldStep").textContent=steps[i++];},720);
   setTimeout(()=>{
-    try{
     clearInterval(iv);ov.classList.remove("on");
     document.getElementById("qwrap").classList.remove("on");
     const ranked=COMMUNES.map(calcScore).sort((a,b)=>b.match-a.match);
@@ -1097,13 +1058,7 @@ function showResults(){
       const phEl=document.getElementById("ph-"+i);
       if(imgEl)loadCardPhoto(c.n,imgEl,phEl,c.ph);
     });
-  }catch(e){
-    console.error('showResults error:',e.message,e.stack);
-    // Montrer les résultats même en cas d'erreur partielle
-    try{document.getElementById("reswrap").classList.add("on");window.scrollTo(0,0);}catch(e2){}
-    ov.classList.remove('on');
-  }
-  },2500);
+  },3800);
 }
 
 
