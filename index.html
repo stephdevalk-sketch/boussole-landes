@@ -1045,8 +1045,8 @@ communesHtml+
 }
 
 function showResults(){
-  computeScoreRange();
-  incrementCounter();
+  try{computeScoreRange();}catch(e){console.warn("scoreRange:",e);}
+  try{incrementCounter();}catch(e){}
   const ov=document.getElementById("ldOv");
   ov.classList.add("on");
   const fill=document.getElementById("ldFill");
@@ -1102,8 +1102,13 @@ function showResults(){
       const phEl=document.getElementById("ph-"+i);
       if(imgEl)loadCardPhoto(c.n,imgEl,phEl,c.ph);
     });
-  }catch(e){console.error('showResults error:',e);ov.classList.remove('on');}
-  },3900);
+  }catch(e){
+    console.error('showResults error:',e.message,e.stack);
+    // Montrer les résultats même en cas d'erreur partielle
+    try{document.getElementById("reswrap").classList.add("on");window.scrollTo(0,0);}catch(e2){}
+    ov.classList.remove('on');
+  }
+  },2500);
 }
 
 
