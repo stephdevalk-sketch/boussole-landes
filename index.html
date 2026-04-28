@@ -735,7 +735,7 @@ function renderQ(){
   document.getElementById("btnPrev").style.visibility=cQ===0?"hidden":"visible";
   const btn=document.getElementById("btnNext");
   btn.textContent=cQ===TQ-1?"Voir mes résultats →":"Suivant →";
-  if(q.type==="contact"){document.getElementById("skipBtn").style.display="none";btn.textContent="Découvrir ma commune →";}
+  if(q.type==="contact"){document.getElementById("skipBtn").style.display="none";btn.textContent="Découvrir ma commune →";if(A.contact)btn.className="btn-next on";}
   else document.getElementById("skipBtn").style.display="";
   const hasA=A[q.id]!==undefined||(q.type==="budget"&&(A.bMin||A.bMax))||(q.type==="type_surface"&&A.typeBien&&A.surface);
   btn.className="btn-next"+(hasA?" on":"");
@@ -842,13 +842,17 @@ function setRecontact(val,el){
 }
 
 function chkC(){
-  const p=document.getElementById("iP")?.value.trim();
-  const n=document.getElementById("iN")?.value.trim();
-  const e=document.getElementById("iE")?.value.trim();
-  const t=(document.getElementById("iT")?.value||"").replace(/\D/g,"");
-  const ok=p&&n&&e&&e.includes("@")&&t.length>=10;
-  document.getElementById("btnNext").className="btn-next"+(ok?" on":"");
-  if(ok)A.contact={prenom:p,nom:n,email:e,tel:t};
+  try{
+    const p=(document.getElementById("iP")?.value||"").trim();
+    const n=(document.getElementById("iN")?.value||"").trim();
+    const e=(document.getElementById("iE")?.value||"").trim();
+    const t=(document.getElementById("iT")?.value||"").replace(/\D/g,"");
+    const ok=!!(p&&n&&e&&e.includes("@")&&t.length>=10);
+    const btn=document.getElementById("btnNext");
+    if(btn)btn.className="btn-next"+(ok?" on":"");
+    if(ok)A.contact={prenom:p,nom:n,email:e,tel:t};
+    return ok;
+  }catch(err){console.error("chkC error:",err);return false;}
 }
 
 function prevQ(){if(cQ>0){cQ--;renderQ();}}
@@ -1050,6 +1054,7 @@ function showResults(){
   const steps=["Analyse de vos critères…","Comparaison avec 327 communes…","Calcul des scores par critère…","Analyse budgétaire…","Finalisation de votre top 10…"];
   let i=0;const iv=setInterval(()=>{if(i<steps.length)document.getElementById("ldStep").textContent=steps[i++];},720);
   setTimeout(()=>{
+    try{
     clearInterval(iv);ov.classList.remove("on");
     document.getElementById("qwrap").classList.remove("on");
     const ranked=COMMUNES.map(calcScore).sort((a,b)=>b.match-a.match);
@@ -1097,6 +1102,7 @@ function showResults(){
       const phEl=document.getElementById("ph-"+i);
       if(imgEl)loadCardPhoto(c.n,imgEl,phEl,c.ph);
     });
+  }catch(e){console.error('showResults error:',e);ov.classList.remove('on');}
   },3900);
 }
 
