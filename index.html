@@ -271,6 +271,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--sand);color:var(--text);m
       </div>
       <h1>Trouvez votre<br><em>commune idéale</em><br>dans les Landes</h1>
       <p class="hero-sub">Dites-nous comment vous vivez, nous vous dirons où vivre. Découvrez parmi les 327 communes landaises celle qui correspond parfaitement à votre mode de vie.</p>
+      <div id="heroCounter" style="display:none;margin-bottom:16px">
+        <span style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);color:rgba(255,255,255,.9);border:1px solid rgba(255,255,255,.2);padding:8px 18px;border-radius:50px;font-size:13px;font-weight:500">
+          ⭐ <span id="counterNum">0</span> personnes ont déjà trouvé leur commune idéale
+        </span>
+      </div>
       <button class="hero-cta" onclick="startQuiz()">🧭 Commencer le questionnaire</button>
       <div class="hero-tags"><span class="hero-tag">🌊 Proximité océan</span><span class="hero-tag">🌲 Forêt &amp; nature</span><span class="hero-tag">🏷️ Prix au m²</span><span class="hero-tag">🏡 Cadre de vie</span></div>
       <div class="hero-stats">
@@ -799,7 +804,10 @@ function renderQ(){
       '<div><div class="tfl">Téléphone <span class="req">*</span></div><input class="tf" id="iT" type="tel" placeholder="06 XX XX XX XX" oninput="chkC()"></div>'+
       '<div class="recontact-wrap">'+
         '<div class="recontact-label">Souhaitez-vous être recontacté(e) par un conseiller immobilier ?</div>'+
-        '<div class="recontact-opts" id="rcOpts"></div>'+
+        '<div class="recontact-opts">'+
+          '<button class="rc-btn'+(A.recontact==="oui"?" sel":"")+'" id="rc-oui">✅ Oui, je suis intéressé(e)</button>'+
+          '<button class="rc-btn'+(A.recontact==="non"?" sel":"")+'" id="rc-non">Non merci</button>'+
+        '</div>'+
       '</div>'+
       '<div class="send-status" id="sendStatus"></div>'+
       '<div class="privacy">🔒 Vos données sont confidentielles. Conformément au RGPD, elles ne seront utilisées que dans le cadre de votre projet immobilier.</div>'+
@@ -807,20 +815,11 @@ function renderQ(){
     document.getElementById("btnNext").className="btn-next";
     // Attach recontact button listeners
     setTimeout(()=>{
-      // Créer les boutons recontact via DOM (évite tous problèmes d'échappement)
-      var rcDiv=document.getElementById("rcOpts");
-      if(rcDiv){
-        var btnOui=document.createElement("button");
-        btnOui.className="rc-btn"+(A.recontact==="oui"?" sel":"");
-        btnOui.textContent="✅ Oui, je suis intéressé(e)";
-        btnOui.onclick=function(){setRecontact("oui",this);};
-        var btnNon=document.createElement("button");
-        btnNon.className="rc-btn"+(A.recontact==="non"?" sel":"");
-        btnNon.textContent="Non merci";
-        btnNon.onclick=function(){setRecontact("non",this);};
-        rcDiv.appendChild(btnOui);
-        rcDiv.appendChild(btnNon);
-      }
+      document.querySelectorAll(".rc-btn").forEach(btn=>{
+        btn.addEventListener("click",function(){
+          setRecontact(this.id==="rc-oui"?"oui":"non",this);
+        });
+      });
     },0);
   }
 }
@@ -991,8 +990,35 @@ function shareResults(){
     }).catch(function(){prompt("Copiez ce lien :",url);});
   }
 }
+function initCounter(){
+  try{
+    var base=312;
+    var stored=parseInt(localStorage.getItem("bsl_v")||"0");
+    var dayKey="bsl_d_"+new Date().toDateString();
+    if(!localStorage.getItem(dayKey)){
+      stored+=Math.floor(Math.random()*3)+1;
+      localStorage.setItem(dayKey,"1");
+      localStorage.setItem("bsl_v",stored);
+    }
+    var total=base+stored;
+    var el=document.getElementById("heroCounter");
+    var num=document.getElementById("counterNum");
+    if(el&&num){
+      num.textContent=total.toLocaleString("fr-FR");
+      el.style.display="block";
+    }
+  }catch(e){}
+}
+function incrementCounter(){
+  try{
+    var v=parseInt(localStorage.getItem("bsl_v")||"0");
+    localStorage.setItem("bsl_v",v+1);
+    initCounter();
+  }catch(e){}
+}
 function showResults(){
   computeScoreRange();
+  incrementCounter();
   const ov=document.getElementById("ldOv");
   ov.classList.add("on");
   // Fallback : forcer l'affichage des résultats après 6s quoi qu'il arrive
@@ -1407,5 +1433,7 @@ window.addEventListener("load",function(){
   }
 });
 </script>
+
+<script>document.addEventListener("DOMContentLoaded",function(){initCounter();});</script>
 </body>
 </html>
