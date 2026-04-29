@@ -8,6 +8,7 @@
 <!-- SEO -->
 <meta name="keywords" content="immobilier Landes, acheter maison Landes, commune idéale Landes, Hossegor immobilier, Capbreton immobilier, Dax immobilier, Soustons, Mont-de-Marsan, Biscarrosse, Mimizan, vivre dans les Landes, s'installer dans les Landes, conseiller immobilier Landes, Stéphan De Valk, Dream Immo">
 <meta name="robots" content="index, follow">
+<meta name="google-site-verification" content="S8or3BVyJk8fEQjpwZ5scgHDAlxzjJ2BCJmhUOlhu6Q">
 <meta name="author" content="Stéphan DE VALK — Dream Immo">
 <meta name="geo.region" content="FR-40">
 <meta name="geo.placename" content="Landes, France">
@@ -1101,6 +1102,110 @@ const QS=[
   ]},
   {id:"contact",ico:"🔓",title:"Accédez à vos résultats",sub:"Entrez vos coordonnées pour recevoir votre bilan personnalisé",type:"contact"}
 ];
+
+async function sendEmail(ranked){
+  try{
+    const top5=ranked.slice(0,5);
+    const fmt=v=>v>=1000000?"1 000 000 €":(v/1000).toFixed(0)+"k €";
+    const surfLabels={s40:"< 40 m²",s80:"40-80 m²",s120:"80-120 m²",s200:"120-200 m²",s200p:"> 200 m²"};
+    const surfLa=surfLabels[A.surface]||"—";
+    const communesHtml=top5.map((c,i)=>{
+      const bg=i%2===0?"#f9f8f5":"#ffffff";
+      return "<tr style='background:"+bg+"'>"+
+        "<td style='padding:10px 14px;font-weight:600;color:#1B6B7B'>#"+(i+1)+" "+c.n+"</td>"+
+        "<td style='padding:10px 14px;text-align:center'><strong style='color:#C9A84C'>"+c.match+"%</strong></td>"+
+        "<td style='padding:10px 14px;color:#666'>"+c.pm.toLocaleString("fr-FR")+" €/m²</td>"+
+        "</tr>";
+    }).join("");
+    const htmlBody=
+      "<div style='font-family:DM Sans,Arial,sans-serif;max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 20px rgba(0,0,0,.08)'>"+
+      "<div style='background:"+(A.recontact==="oui"?"#C9A84C":"#0a2830")+";color:#fff;padding:10px 20px;text-align:center;font-weight:700;font-size:15px'>"+
+      (A.recontact==="oui"?"✅ SOUHAITE ÊTRE RECONTACTÉ":"❌ Ne souhaite pas être recontacté")+"</div>"+
+      "<div style='background:linear-gradient(135deg,#0a2830,#1B6B7B);padding:32px 28px;text-align:center'>"+
+      "<div style='font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.6);margin-bottom:8px'>La Boussole Immobilière des Landes</div>"+
+      "<div style='font-size:24px;font-weight:700;color:#fff;margin-bottom:4px'>Nouveau prospect</div>"+
+      "<div style='font-size:15px;color:rgba(255,255,255,.8)'>"+A.contact?.prenom+" "+A.contact?.nom+"</div>"+
+      "</div>"+
+      "<div style='padding:28px'>"+
+      "<h3 style='color:#0a2830;margin:0 0 16px'>📋 Coordonnées</h3>"+
+      "<table style='width:100%;border-collapse:collapse;margin-bottom:24px'>"+
+      "<tr><td style='padding:8px 0;color:#666;width:40%'>Email</td><td style='padding:8px 0;font-weight:500'><a href='mailto:"+A.contact?.email+"'>"+A.contact?.email+"</a></td></tr>"+
+      "<tr><td style='padding:8px 0;color:#666'>Téléphone</td><td style='padding:8px 0;font-weight:500'><a href='tel:"+A.contact?.tel+"'>"+A.contact?.tel+"</a></td></tr>"+
+      "<tr><td style='padding:8px 0;color:#666'>Budget</td><td style='padding:8px 0;font-weight:500'>"+(A.bMin&&A.bMax?A.bMin.toLocaleString("fr-FR")+" → "+A.bMax.toLocaleString("fr-FR")+" €":"—")+"</td></tr>"+
+      "<tr><td style='padding:8px 0;color:#666'>Surface</td><td style='padding:8px 0;font-weight:500'>"+surfLa+"</td></tr>"+
+      "<tr><td style='padding:8px 0;color:#666'>Profil</td><td style='padding:8px 0;font-weight:500'>"+(A.profil||"—")+"</td></tr>"+
+      "<tr><td style='padding:8px 0;color:#666'>Usage</td><td style='padding:8px 0;font-weight:500'>"+(A.usage||"—")+"</td></tr>"+
+      "<tr><td style='padding:8px 0;color:#666'>Délai</td><td style='padding:8px 0;font-weight:500'>"+(A.delai||"—")+"</td></tr>"+
+      "<tr><td style='padding:8px 0;color:#666'>Recontact</td><td style='padding:8px 0;font-weight:600;color:"+(A.recontact==="oui"?"#C9A84C":"#666")+"'>"+(A.recontact==="oui"?"✅ Oui":"❌ Non")+"</td></tr>"+
+      "</table>"+
+      "<h3 style='color:#0a2830;margin:0 0 16px'>🏆 Top 5 communes recommandées</h3>"+
+      "<table style='width:100%;border-collapse:collapse;border-radius:8px;overflow:hidden;margin-bottom:24px'>"+
+      "<thead><tr style='background:#0a2830;color:#fff'>"+
+      "<th style='padding:10px 14px;text-align:left'>Commune</th>"+
+      "<th style='padding:10px 14px'>Score</th>"+
+      "<th style='padding:10px 14px;text-align:left'>Prix/m²</th>"+
+      "</tr></thead><tbody>"+communesHtml+"</tbody></table>"+
+      "<div style='text-align:center;padding:20px 0'>"+
+      "<a href='tel:+33633039865' style='display:inline-flex;align-items:center;gap:8px;background:#C9A84C;color:#1A1A1A;font-size:14px;font-weight:500;padding:14px 28px;border-radius:50px;text-decoration:none'>📞 Appeler Stéphan</a>"+
+      "</div></div></div>";
+    const date=new Date().toLocaleString("fr-FR");
+    const paramsAdvisor={
+      to_email:"stephan.devalk@dream-immo.com",
+      to_name:"Stéphan DE VALK",
+      prenom:A.contact?.prenom||"",
+      nom:A.contact?.nom||"",
+      email:A.contact?.email||"",
+      tel:A.contact?.tel||"",
+      commune1:top5[0]?top5[0].n+" ("+top5[0].match+"%)":"—",
+      commune2:top5[1]?top5[1].n+" ("+top5[1].match+"%)":"—",
+      commune3:top5[2]?top5[2].n+" ("+top5[2].match+"%)":"—",
+      commune4:top5[3]?top5[3].n+" ("+top5[3].match+"%)":"—",
+      commune5:top5[4]?top5[4].n+" ("+top5[4].match+"%)":"—",
+      budget:A.bMin&&A.bMax?A.bMin.toLocaleString("fr-FR")+"  → "+A.bMax.toLocaleString("fr-FR")+" €":"—",
+      surface:surfLa,
+      type_bien:A.typeBien||"—",
+      usage:A.usage||"—",
+      delai:A.delai||"—",
+      profil:A.profil||"—",
+      recontact:A.recontact==="oui"?"✅ Oui, souhaite être recontacté":"❌ Non",
+      date:date,
+      html_body:htmlBody,
+      message:"Nouveau prospect — Recontact: "+(A.recontact==="oui"?"OUI":"NON")
+    };
+    await emailjs.send(EJS_SERVICE,"boussole_contact",paramsAdvisor,EJS_PUBKEY);
+    if(A.contact?.email){
+      const paramsClient={
+        to_email:A.contact.email,
+        to_name:A.contact.prenom,
+        prenom:A.contact.prenom||"",
+        nom:A.contact.nom||"",
+        email:A.contact.email||"",
+        tel:A.contact.tel||"",
+        commune1:top5[0]?top5[0].n+" ("+top5[0].match+"%)":"—",
+        commune2:top5[1]?top5[1].n+" ("+top5[1].match+"%)":"—",
+        commune3:top5[2]?top5[2].n+" ("+top5[2].match+"%)":"—",
+        commune4:top5[3]?top5[3].n+" ("+top5[3].match+"%)":"—",
+        commune5:top5[4]?top5[4].n+" ("+top5[4].match+"%)":"—",
+        budget:A.bMin&&A.bMax?A.bMin.toLocaleString("fr-FR")+" → "+A.bMax.toLocaleString("fr-FR")+" €":"—",
+        surface:surfLa,
+        type_bien:A.typeBien||"—",
+        usage:A.usage||"—",
+        delai:A.delai||"—",
+        profil:A.profil||"—",
+        recontact:A.recontact==="oui"?"✅ Oui, souhaite être recontacté":"❌ Non",
+        date:date,
+        html_body:htmlBody,
+        message:"Voici votre récapitulatif personnalisé de La Boussole Immobilière des Landes"
+      };
+      await emailjs.send(EJS_SERVICE,"boussole_client",paramsClient,EJS_PUBKEY);
+    }
+  }catch(e){console.warn("EmailJS:",e);}
+}
+
+async function sendToSheets(ranked){
+  await sendEmail(ranked);
+}
+
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script>emailjs.init({publicKey:"jukP_NrBCcVJmQvn7"});</script>
