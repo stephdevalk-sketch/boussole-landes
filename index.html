@@ -799,10 +799,7 @@ function renderQ(){
       '<div><div class="tfl">Téléphone <span class="req">*</span></div><input class="tf" id="iT" type="tel" placeholder="06 XX XX XX XX" oninput="chkC()"></div>'+
       '<div class="recontact-wrap">'+
         '<div class="recontact-label">Souhaitez-vous être recontacté(e) par un conseiller immobilier ?</div>'+
-        '<div class="recontact-opts">'+
-          '<button class="rc-btn'+(A.recontact==="oui"?" sel":"")+' data-val=\'oui\' id=\'rc-oui\'>✅ Oui, je suis intéressé(e)</button>'+
-          '<button class="rc-btn'+(A.recontact==="non"?" sel":"")+' data-val=\'non\' id=\'rc-non\'>Non merci</button>'+
-        '</div>'+
+        '<div class="recontact-opts" id="rcOpts"></div>'+
       '</div>'+
       '<div class="send-status" id="sendStatus"></div>'+
       '<div class="privacy">🔒 Vos données sont confidentielles. Conformément au RGPD, elles ne seront utilisées que dans le cadre de votre projet immobilier.</div>'+
@@ -810,11 +807,20 @@ function renderQ(){
     document.getElementById("btnNext").className="btn-next";
     // Attach recontact button listeners
     setTimeout(()=>{
-      document.querySelectorAll(".rc-btn").forEach(function(btn){
-        btn.addEventListener("click",function(){
-          setRecontact(this.dataset.val,this);
-        });
-      });
+      // Créer les boutons recontact via DOM (évite tous problèmes d'échappement)
+      var rcDiv=document.getElementById("rcOpts");
+      if(rcDiv){
+        var btnOui=document.createElement("button");
+        btnOui.className="rc-btn"+(A.recontact==="oui"?" sel":"");
+        btnOui.textContent="✅ Oui, je suis intéressé(e)";
+        btnOui.onclick=function(){setRecontact("oui",this);};
+        var btnNon=document.createElement("button");
+        btnNon.className="rc-btn"+(A.recontact==="non"?" sel":"");
+        btnNon.textContent="Non merci";
+        btnNon.onclick=function(){setRecontact("non",this);};
+        rcDiv.appendChild(btnOui);
+        rcDiv.appendChild(btnNon);
+      }
     },0);
   }
 }
